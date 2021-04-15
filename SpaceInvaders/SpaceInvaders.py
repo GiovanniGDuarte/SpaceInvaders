@@ -9,18 +9,18 @@ mouse = Window.get_mouse()
 teclado = Window.get_keyboard()
 
 ##Game Images##
-fundo = GameImage("space.png")
-botaoJogar = GameImage("jogar.png")
-botaoDificuldade = GameImage("dificuldade.png")
-botaoRanking = GameImage("ranking.png")
-botaoSair = GameImage("sair.png")
-botaoEasy = GameImage("easy.png")
-botaoMedium = GameImage("MEDIUM.png")
-botaoHard = GameImage("hard.png")
-spaceShip = GameImage("spaceship.png")
-gameOver = GameImage("gameOver.png")
+fundo = GameImage("Actors and background/space.png")
+botaoJogar = GameImage("Buttons/jogar.png")
+botaoDificuldade = GameImage("Buttons/dificuldade.png")
+botaoRanking = GameImage("Buttons/ranking.png")
+botaoSair = GameImage("Buttons/sair.png")
+botaoEasy = GameImage("Buttons/easy.png")
+botaoMedium = GameImage("Buttons/MEDIUM.png")
+botaoHard = GameImage("Buttons/hard.png")
+spaceShip = GameImage("Actors and background/spaceship.png")
+gameOver = GameImage("Messages/gameOver.png")
 gameOver.set_position((janela.width/2)-gameOver.width/2,(janela.height/2)-gameOver.height/2)
-pressESC = Sprite("PressESC.png",2)
+pressESC = Sprite("Messages/PressESC.png",2)
 pressESC.set_position(janela.width/2-pressESC.width/2,janela.height-pressESC.height-spaceShip.height)
 pressESC.set_total_duration(1500)
 drawPressESC = False
@@ -45,7 +45,7 @@ chosen = False
 velTiro = 200
 tiros = []
 velMonster = 100
-monster_height = GameImage("spaceInvader.png").height
+monster_height = GameImage("Actors and background/spaceInvader.png").height
 recarga = 0
 pontuacao = 0
 
@@ -78,7 +78,7 @@ def spaceShipPosition(initial):
 
 ##Cria matriz de tiros##
 def shoot(initial):
-    tiro = Sprite("tiro2.png",4)
+    tiro = Sprite("Actors and background/tiro2.png",4)
     tirox = initial
     tiroY = janela.height - spaceShip.height
     tiros.append([tiro,tirox,tiroY])
@@ -109,7 +109,7 @@ def generateMonsterMatrix(N, M):
     for linha in range(N):
         monstersLinha = []
         for coluna in range(M):
-            monster = GameImage("spaceInvader.png")
+            monster = GameImage("Actors and background/spaceInvader.png")
             monsterX = 20 + 20*coluna
             monsterY = 20 + 20*linha
             monstersLinha.append([monster,monsterX,monsterY])
