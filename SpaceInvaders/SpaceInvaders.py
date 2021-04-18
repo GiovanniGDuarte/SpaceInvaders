@@ -1,14 +1,15 @@
 from PPlay.window import *
 from PPlay.gameimage import *
 from PPlay.sprite import *
-from PPlay.collision import *
+import SpaceInvadersLib
+import random
 
 janela = Window(600,400)
 janela.set_title("Space Invaders")
 mouse = Window.get_mouse()
 teclado = Window.get_keyboard()
 
-##Game Images##
+##Game Objects##
 fundo = GameImage("Actors and background/space.png")
 botaoJogar = GameImage("Buttons/jogar.png")
 botaoDificuldade = GameImage("Buttons/dificuldade.png")
@@ -18,10 +19,12 @@ botaoEasy = GameImage("Buttons/easy.png")
 botaoMedium = GameImage("Buttons/MEDIUM.png")
 botaoHard = GameImage("Buttons/hard.png")
 spaceShip = GameImage("Actors and background/spaceship.png")
+spaceshipBlink = Sprite("Actors and background/spaceshipBlink.png",2)
+spaceshipBlink.set_total_duration(500)
 gameOver = GameImage("Messages/gameOver.png")
 gameOver.set_position((janela.width/2)-gameOver.width/2,(janela.height/2)-gameOver.height/2)
 pressESC = Sprite("Messages/PressESC.png",2)
-pressESC.set_position(janela.width/2-pressESC.width/2,janela.height-pressESC.height-spaceShip.height)
+pressESC.set_position(janela.width/2-pressESC.width/2,janela.height-pressESC.height)
 pressESC.set_total_duration(1500)
 drawPressESC = False
 
@@ -43,145 +46,31 @@ gameOverBool = False
 dificuldade = 0
 chosen = False
 velTiro = 200
-tiros = []
+tirosPlayer = []
+tirosMonstros = []
 velMonster = 100
 monster_height = GameImage("Actors and background/spaceInvader.png").height
-recarga = 0
+recargaPlayer = 0
+recargaMonstro = 0
+lives = 3
+invencivel = False
+invencivelTempo = 0
 pontuacao = 0
-
-##
-
-##Atualiza posicao do menu##
-def set_menu():
-    botaoJogar.set_position(jogarX, jogarY)
-    botaoDificuldade.set_position(dificuldadeX, dificuldadeY)
-    botaoRanking.set_position(rankingX, rankingY)
-    botaoSair.set_position(sairX, sairY)
-    botaoEasy.set_position(easyX, easyY)
-    botaoMedium.set_position(mediumX, mediumY)
-    botaoHard.set_position(hardX, hardY)
-##
-
-##Atualiza posicao da nave##
-def spaceShipPosition(initial):
-    spaceShip_x = initial
-    if teclado.key_pressed("LEFT") and spaceShip_x > 0:
-        velSpaceShip = -200
-    elif teclado.key_pressed("RIGHT") and spaceShip_x + spaceShip.width < janela.width:
-        velSpaceShip = 200
-    else:
-        velSpaceShip = 0
-    spaceShip_x = spaceShip_x + velSpaceShip * janela.delta_time()
-    spaceShip.set_position(spaceShip_x, janela.height - spaceShip.height)
-    return spaceShip_x
-##
-
-##Cria matriz de tiros##
-def shoot(initial):
-    tiro = Sprite("Actors and background/tiro2.png",4)
-    tirox = initial
-    tiroY = janela.height - spaceShip.height
-    tiros.append([tiro,tirox,tiroY])
-    return(tiros)
-##
-
-##Escolha de dificuldade##
-def escolha_dificuldade(dificuldade):
-    if mouse.is_button_pressed(BUTTON_LEFT):
-        if mouse.is_over_area([easyX, easyY], [easyX + botaoEasy.width, easyY + botaoEasy.height]):
-            dificuldade = 3
-        elif mouse.is_over_area([mediumX, mediumY], [mediumX + botaoMedium.width, mediumY + botaoMedium.height]):
-            dificuldade = 2
-        elif mouse.is_over_area([hardX, hardY], [hardX + botaoHard.width, hardY + botaoHard.height]):
-            dificuldade = 1
-    if dificuldade == 3:
-        janela.draw_text("EASY",10,10,color = (255,255,255))
-    elif dificuldade == 2:
-        janela.draw_text("MEDIUM",10,10,color = (255,255,255))
-    elif dificuldade == 1:
-        janela.draw_text("HARD",10,10,color=(255,255,255))
-    return(dificuldade)
-##
-
-#Gera matriz de monstros
-def generateMonsterMatrix(N, M):
-    monsters = []
-    for linha in range(N):
-        monstersLinha = []
-        for coluna in range(M):
-            monster = GameImage("Actors and background/spaceInvader.png")
-            monsterX = 20 + 20*coluna
-            monsterY = 20 + 20*linha
-            monstersLinha.append([monster,monsterX,monsterY])
-        monsters.append(monstersLinha)
-    return(monsters)
-##
-
-##Checa colisao da matriz de monstros com paredes laterais##
-def wallCollision(monsters):
-    for linha in monsters:
-        if linha[len(linha) - 1][1] > janela.width:
-            return("r")
-        elif linha[0][1] < 0:
-            return("l")
-    return False
-##
-
-##Checa colisao de tiros com monstros (testa primeiro a colisao com a primeira linha e elimina os casos em que o tiro esta a direita ou a esquerda de um bloco)##
-def monsterTiroCollision(tiro,monsters):
-    intervalos = indexMonstro(tiro[1]-tiro[0].width,monsters)
-    for linha in reversed(monsters):
-        if intervalos[monsters.index(linha)][0] != intervalos[monsters.index(linha)][1] :
-            for i in range(intervalos[monsters.index(linha)][0],intervalos[monsters.index(linha)][1]):
-                if Collision.collided(tiro[0], linha[i][0]):
-                    linha.remove(linha[i])
-                    return True
-        else:
-            if len(linha) ==0:
-                monsters.remove(linha)
-            elif Collision.collided(tiro[0], linha[intervalos[monsters.index(linha)][0]][0]):
-                linha.remove(linha[intervalos[monsters.index(linha)][0]])
-                return True
-##
-
-##Acha o index de quais monstros devem ser testados##
-def indexMonstro(tirox,monsters):
-    min= 0
-    intervalos = []
-    for line in monsters:
-        max = len(line)
-        for n in range(0, len(line)):
-            if tirox >= line[n][1]:
-                min = n
-            if tirox<= line[n][1]:
-                max = n
-        intervalos.append([min,max])
-    return(intervalos)
-##
-##Desenha o menu##
-def drawMenu():
-    fundo.draw()
-    botaoJogar.draw()
-    botaoDificuldade.draw()
-    botaoRanking.draw()
-    botaoSair.draw()
-    botaoEasy.draw()
-    botaoMedium.draw()
-    botaoHard.draw()
-##
-
+points = 0
+drawTotalPoints = False
+tempo = 0
 ##Gerando a matriz dado NxM##
 N,M = 2,10
-monsters = generateMonsterMatrix(N,M)
+monsters = SpaceInvadersLib.generateMonsterMatrix(N,M)
 ##
 
 while True:
-    #Posicoes iniciais e atualizacao da posicao da Nave##
-    set_menu()
-    spaceShipPosition(initial)
-    initial = spaceShipPosition(initial)
+    #Posicoes iniciais, atualizacao da posicao da Nave e contador de Tempo##
+    SpaceInvadersLib.set_menu([botaoJogar,botaoDificuldade,botaoRanking,botaoSair,botaoEasy,botaoMedium,botaoHard],[jogarX,jogarY,dificuldadeX,dificuldadeY,rankingX,rankingY,sairX,sairY,easyX,easyY,mediumX,mediumY,hardX,hardY])
+    initial = SpaceInvadersLib.spaceShipPosition(initial, spaceShip, teclado, janela)
+    tempo = tempo + janela.delta_time()
     ##
-
+    
     ##Operando Menu##
     if mouse.is_button_pressed(BUTTON_LEFT):
         if mouse.is_over_area([jogarX,jogarY],[jogarX + botaoJogar.width, jogarY + botaoJogar.height]) and chosen:
@@ -206,93 +95,106 @@ while True:
             easyX, easyY, mediumX, mediumY, hardX, hardY = -200, -200, -200, -200, -200, -200
             drawPressESC = False
             gameOverBool = False
+            drawTotalPoints = False
             jogar = False
     ##
 
     ##Desenhando elementos do Menu##
-    drawMenu()
+    SpaceInvadersLib.drawMenu([fundo, botaoJogar, botaoDificuldade, botaoRanking, botaoSair,botaoEasy,botaoMedium,botaoHard])
     if drawPressESC:
         pressESC.draw()
         pressESC.update()
 
     ##Dentro da tela de jogo##
     if jogar:
-        ##Tiro##
-        recarga += janela.delta_time() * dificuldade * 1.5
-        if teclado.key_pressed("space") and recarga >= 1:
-            shoot(initial)
-            recarga = 0
+        ##Tiros de monstros e player##
+        recargaPlayer += janela.delta_time() * dificuldade*1.5
+        recargaMonstro += (janela.delta_time()/(dificuldade))*1.5
+        if recargaMonstro >= 1:
+            monsterLinha = monsters[random.choice(range(0,len(monsters)))]
+            monster = monsterLinha[random.choice(range(0,len(monsterLinha)))]
+            SpaceInvadersLib.shootMonstros(monster[1],monster[2],tirosMonstros)
+            recargaMonstro = 0
+        if teclado.key_pressed("space") and recargaPlayer >= 1:
+            SpaceInvadersLib.shootPlayer(initial,tirosPlayer,janela,spaceShip)
+            recargaPlayer = 0
         ##
 
         ##Atualiza posicao do monstro e desenha##
-        for monsterLinha in monsters:
-            if len(monsterLinha) == 0:
-                monsters.remove(monsterLinha)
-            for monster in monsterLinha:
-                monster[0].set_position(monster[1], monster[2])
-                monster[1] = monster[1] + velMonster*janela.delta_time()
-                monster[0].draw()
+        SpaceInvadersLib.monstersUpdate(monsters,velMonster,janela)
         ##
 
         ##Condicao para Game Over ou Vitoria
         if len(monsters)>0:
-            if monsters[len(monsters)-1][0][2] + monster_height >= janela.height - spaceShip.height:
-                pontuacao = 0
+            if monsters[len(monsters)-1][0][2] + monster_height >= janela.height - spaceShip.height or lives<=0:
                 gameOverBool = True
                 jogar = False
         else:
+            Invencivel = False
             drawPressESC = True
+            drawTotalPoints = True
             jogar = False
-            tiros = []
+            tirosPlayer = []
+            tirosMonstros = []
             spaceShip.set_position((janela.width / 2) - spaceShip.width, janela.height - spaceShip.height)
             velMonster = 100
-            monsters = generateMonsterMatrix(N, M)
-            points = 0
+            monsters = SpaceInvadersLib.generateMonsterMatrix(N, M)
+            points = pontuacao
+            pontuacao = 0
+            lives = 3
         ##
 
         ##Colisao dos monstros com as paredes laterais##
-        collided = wallCollision(monsters)
-        if collided!=False:
-            for linha in monsters:
-                if collided=="r":
-                    for i in range(len(linha)):
-                        linha[i][1] = linha[i][1] - 20
-                    velMonster = -1 * (abs(velMonster) + 20)
-                elif collided=="l":
-                    for i in range(len(linha)):
-                        linha[i][1] += 20
-                    velMonster = (abs(velMonster) + 20)
-                for i in range(len(linha)):
-                    linha[i][2] = linha[i][2] + 50
+        velMonster = SpaceInvadersLib.wallCollision(monsters,janela,dificuldade,velMonster)
         ##
 
-        ##Atualiza posicao dos tiros, desenha e remove monstros atingidos##
-        for tiro in tiros:
-            tiro[0].set_position(tiro[1],tiro[2])
-            tiro[0].set_total_duration(1000)
-            tiro[0].update()
-            tiro[0].draw()
-            tiro[2] = tiro[2] -velTiro*janela.delta_time()
-            if tiro[2]<=0:
-                tiros.remove(tiro)
-            if monsterTiroCollision(tiro,monsters):
-                pontuacao+=1
-                tiros.remove(tiro)
+        ##Atualiza a matriz de tiros dos monstros e retorna verdadeiro se um tiro colidiu com o player##
+        if SpaceInvadersLib.tirosMonstrosUpdate(tirosMonstros,janela,invencivel,velTiro,spaceShip) == True:
+            lives -= 1
+            initial = janela.width / 2 - spaceShip.width
+            invencivel = True
         ##
-        ##Desenha nave##
-        spaceShip.draw()
+
+        ##Estado de invencibilidade##
+        if invencivel == True:
+            invencivelTempo += janela.delta_time()
+            spaceshipBlink.set_position(initial,janela.height - spaceshipBlink.height)
+            spaceshipBlink.draw()
+            spaceshipBlink.update()
+            if invencivelTempo > 2:
+                invencivel = False
+                invencivelTempo = 0
+        ##
+
+        ##Atualiza posicao dos tirosPlayer, desenha, retorna verdadeiro se um monstro for atingido##
+        if SpaceInvadersLib.tirosPlayerUpdate(tirosPlayer,monsters, velTiro,janela) == True:
+                pontuacao+=int(100/tempo)
+        ##
+
+        ##Desenha nave, vidas e score##
+        if invencivel == False:
+            spaceShip.draw()
+        janela.draw_text("LIVES: " + str(lives), janela.width/2-20, 0, color=(255, 255, 255))
+        janela.draw_text("SCORE: " + str(pontuacao), janela.width - 80, 10, color=(255, 255, 255))
+        ##
+
     ##Ocorre quando o jogador perde##
     elif gameOverBool:
+        Invencivel = False
         drawPressESC = True
-        tiros = []
+        lives = 3
+        tirosPlayer = []
+        tirosMonstros = []
         spaceShip.set_position((janela.width / 2) - spaceShip.width, janela.height - spaceShip.height)
         velMonster = 100
-        monsters = generateMonsterMatrix(N, M)
-        points = 0
+        monsters = SpaceInvadersLib.generateMonsterMatrix(N, M)
+        pontuacao = 0
         gameOver.draw()
-    ##Escolha e display de dificuldade##
-    escolha_dificuldade(dificuldade)
-    dificuldade = escolha_dificuldade(dificuldade)
-    janela.draw_text("POINTS:"+str(pontuacao), janela.width-60, 10, color=(255, 255, 255))
+    ##
+
+    ##Escolha e display de dificuldade, desenho de Total Score ao vencer##
+    dificuldade = SpaceInvadersLib.escolha_dificuldade(dificuldade,easyX,easyY,botaoEasy,mediumX,mediumY,botaoMedium,hardX,hardY,botaoHard,janela,mouse)
+    if pontuacao == 0 and drawTotalPoints:
+        janela.draw_text("TOTAL SCORE: " + str(points), janela.width / 2-175, janela.height / 2-40,size=(40), color=(255, 255, 255))
     ##
     janela.update()
