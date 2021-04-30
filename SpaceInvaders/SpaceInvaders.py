@@ -47,10 +47,13 @@ dificuldade = 0
 chosen = False
 velTiro = 200
 tirosPlayer = []
+superTiros = []
 tirosMonstros = []
 velMonster = 100
 monster_height = GameImage("Actors and background/spaceInvader.png").height
 recargaPlayer = 0
+recargaSuperTiro = 0
+tempoSuperTiro = 0
 recargaMonstro = 0
 lives = 3
 invencivel = False
@@ -59,6 +62,7 @@ pontuacao = 0
 points = 0
 drawTotalPoints = False
 tempo = 0
+
 ##Gerando a matriz dado NxM##
 N,M = 2,10
 monsters = SpaceInvadersLib.generateMonsterMatrix(N,M)
@@ -116,8 +120,15 @@ while True:
             SpaceInvadersLib.shootMonstros(monster[1],monster[2],tirosMonstros)
             recargaMonstro = 0
         if teclado.key_pressed("space") and recargaPlayer >= 1:
-            SpaceInvadersLib.shootPlayer(initial,tirosPlayer,janela,spaceShip)
+            if tempoSuperTiro == 0:
+                SpaceInvadersLib.shootPlayer(initial,tirosPlayer,janela,spaceShip)
+            if tempoSuperTiro >= 2:
+                SpaceInvadersLib.shootSuperTiro(initial,superTiros,janela,spaceShip)
+                tempoSuperTiro = 0
             recargaPlayer = 0
+            tempoSuperTiro += janela.delta_time()*100
+        elif not teclado.key_pressed("space"):
+            tempoSuperTiro = 0
         ##
 
         ##Atualiza posicao do monstro e desenha##
@@ -167,7 +178,7 @@ while True:
         ##
 
         ##Atualiza posicao dos tirosPlayer, desenha, retorna verdadeiro se um monstro for atingido##
-        if SpaceInvadersLib.tirosPlayerUpdate(tirosPlayer,monsters, velTiro,janela) == True:
+        if SpaceInvadersLib.tirosPlayerUpdate(tirosPlayer,monsters, velTiro,janela) == True or SpaceInvadersLib.superTirosUpdate(superTiros, monsters, velTiro, janela) == True:
                 pontuacao+=int(100/tempo)
         ##
 
@@ -195,6 +206,6 @@ while True:
     ##Escolha e display de dificuldade, desenho de Total Score ao vencer##
     dificuldade = SpaceInvadersLib.escolha_dificuldade(dificuldade,easyX,easyY,botaoEasy,mediumX,mediumY,botaoMedium,hardX,hardY,botaoHard,janela,mouse)
     if pontuacao == 0 and drawTotalPoints:
-        janela.draw_text("TOTAL SCORE: " + str(points), janela.width / 2-175, janela.height / 2-40,size=(40), color=(255, 255, 255))
+        janela.draw_text("TOTAL SCORE: " + str(points), janela.width / 2 -175, janela.height / 2-40,size=(40), color=(255, 255, 255))
     ##
     janela.update()

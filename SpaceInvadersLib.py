@@ -45,6 +45,13 @@ def shootPlayer(initialx, tirosPlayer,janela, spaceShip):
     tirosPlayer.append([tiro, tirox, tiroY])
 ##
 
+## Cria matriz de super tiros##
+def shootSuperTiro(initial,superTiros,janela,spaceShip):
+    superTiro = Sprite("Actors and background/superTiro.png", 5)
+    tirox = initial
+    tiroY = janela.height-spaceShip.height
+    superTiros.append([superTiro,tirox,tiroY])
+##
 ##Cria matriz de tiros para Monstros##
 def shootMonstros(initialx, initialy, tirosMonstros):
     tiro = Sprite("Actors and background/tiro.png", 4)
@@ -65,6 +72,19 @@ def tirosMonstrosUpdate(tirosMonstros,janela,invencivel,velTiro,spaceShip):
             tirosMonstros.remove(tiro)
         if tiro[0].collided(spaceShip) and invencivel == False:
             tirosMonstros.remove(tiro)
+            return True
+##
+## Atualiza matriz  de super tiros ##
+def superTirosUpdate(superTiros, monsters, velTiro, janela):
+    for superTiro in superTiros:
+        superTiro[0].set_position(superTiro[1], superTiro[2])
+        superTiro[0].set_total_duration(1000)
+        superTiro[0].update()
+        superTiro[0].draw()
+        superTiro[2] = superTiro[2] - velTiro * janela.delta_time()
+        if superTiro[2] <= 0:
+            superTiros.remove(superTiro)
+        if monsterTiroCollision(superTiro,monsters):
             return True
 ##
 
